@@ -1,0 +1,4 @@
+{
+  "confidenceThreshold": 0.7,
+  "scanPatterns": ["bash:*", "webfetch:*", "task:*", "read:*"]
+}

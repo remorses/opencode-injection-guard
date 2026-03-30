@@ -7,10 +7,15 @@
 //
 // Config: .opencode/injection-guard.json or OPENCODE_INJECTION_GUARD env var.
 // Default model: auto-detected from connected providers via priority list.
-// Priority: gpt-4.1-mini → claude-haiku → gemini-2.5-flash → bedrock haiku
+// Priority: gpt-4.1-mini -> claude-haiku -> gemini-2.5-flash -> bedrock haiku
+//
+// IMPORTANT: we create our own v2 SDK client from input.serverUrl instead of
+// using input.client directly. The plugin system provides a v1-shaped client
+// but we need v2 flat params and the `permission` field on session.create
+// which only exists in v2.
 
 import type { Plugin } from '@opencode-ai/plugin'
-import type { OpencodeClient } from '@opencode-ai/sdk/v2'
+import { createOpencodeClient } from '@opencode-ai/sdk/v2'
 
 import { loadConfig, resolveModel } from './config.ts'
 import { InjectionJudge } from './judge.ts'
@@ -19,15 +24,17 @@ import { matchesScanPatterns } from './patterns.ts'
 export const injectionGuard: Plugin = async (input) => {
   const config = loadConfig({ projectDir: input.directory })
 
-  // No config found → user hasn't opted in, return empty hooks
+  // No config found -- user hasn't opted in, return empty hooks
   if (!config) {
     return {}
   }
 
-  // PluginInput.client is typed against the v1 SDK shape but at runtime
-  // it's a v2-compatible client. Cast to OpencodeClient from v2 so we
-  // can use the flat parameter style (sessionID, directory, etc.).
-  const client = input.client as unknown as OpencodeClient
+  // Create a v2 SDK client from the server URL so we get flat params
+  // and the `permission` field on session.create.
+  const client = createOpencodeClient({
+    baseUrl: input.serverUrl.toString(),
+    directory: input.directory,
+  })
 
   // Resolve the best available model by checking which providers are connected.
   const providers = await client.provider.list()

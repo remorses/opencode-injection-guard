@@ -1,11 +1,9 @@
 // Judge module: creates a sandboxed OpenCode session to evaluate tool output
 // for prompt injection. The session has all tools denied so the judge model
-// cannot execute anything — it only produces text.
+// cannot execute anything -- it only produces text.
 //
-// Uses @opencode-ai/sdk/v2 flat parameter style per kimaki conventions.
-// The PluginInput.client is cast to the v2 OpencodeClient type at the boundary
-// in index.ts since the plugin types reference the v1 SDK shape but the
-// runtime client is v2-compatible.
+// Uses @opencode-ai/sdk/v2 flat parameter style. The v2 client is created
+// in index.ts from input.serverUrl (not the plugin's v1 input.client).
 
 import type { OpencodeClient, PermissionRuleset } from '@opencode-ai/sdk/v2'
 
