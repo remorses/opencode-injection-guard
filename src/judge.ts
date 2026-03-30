@@ -1,10 +1,9 @@
 // Judge module: creates a sandboxed OpenCode session to evaluate tool output
 // for prompt injection. The session has all tools denied so the judge model
 // cannot execute anything -- it only produces text.
-//
-// Uses input.client from the plugin (in-process, no HTTP).
-// The SDK uses body/path/query nested params.
+// Uses os.tmpdir() as session cwd so judge sessions don't pollute the project.
 
+import os from 'node:os'
 import type { PluginInput } from '@opencode-ai/plugin'
 
 import type { InjectionGuardConfig } from './config.ts'
@@ -31,20 +30,18 @@ type PluginClient = PluginInput['client']
 export class InjectionJudge {
   private client: PluginClient
   private config: InjectionGuardConfig
-  private directory: string
+  private tmpDir: string
 
   constructor({
     client,
     config,
-    directory,
   }: {
     client: PluginClient
     config: InjectionGuardConfig
-    directory: string
   }) {
     this.client = client
     this.config = config
-    this.directory = directory
+    this.tmpDir = os.tmpdir()
   }
 
   async evaluate({
@@ -56,10 +53,7 @@ export class InjectionJudge {
     args: string
     output: string
   }): Promise<JudgeResult> {
-    console.error(`[injection-guard] evaluating tool=${tool} output=${output.length} chars`)
-
     const sessionId = await this.createJudgeSession()
-    console.error(`[injection-guard] judge session created: ${sessionId}`)
 
     const systemPrompt = this.config.includeReasoning
       ? INJECTION_DETECTION_PROMPT_WITH_REASONING
@@ -73,7 +67,6 @@ export class InjectionJudge {
     })
 
     const model = parseModelId(this.config.model)
-    console.error(`[injection-guard] sending to judge model: ${this.config.model}`)
 
     const response = await this.client.session.prompt({
       path: { id: sessionId },
@@ -82,11 +75,10 @@ export class InjectionJudge {
         system: systemPrompt,
         parts: [{ type: 'text', text: userMessage }],
       },
-      query: { directory: this.directory },
+      query: { directory: this.tmpDir },
     })
 
     if (!response.data) {
-      console.error(`[injection-guard] judge prompt returned no data`)
       return { flagged: false, confidence: 0 }
     }
 
@@ -99,19 +91,16 @@ export class InjectionJudge {
       })
 
     const fullText = textParts.join('')
-    console.error(`[injection-guard] judge response: ${fullText}`)
 
     this.deleteSession(sessionId)
 
     const result = parseJudgeResponse(fullText)
-    console.error(`[injection-guard] verdict: flagged=${result.flagged} confidence=${result.confidence}`)
+    console.error(`[injection-guard] tool=${tool} flagged=${result.flagged} confidence=${result.confidence}`)
 
     return result
   }
 
   private async createJudgeSession(): Promise<string> {
-    console.error(`[injection-guard] creating judge session`)
-
     // v1 SessionCreateData.body doesn't have permission, but the runtime
     // server accepts it. Pass it via body and let TS complain only about
     // the extra field.
@@ -119,12 +108,11 @@ export class InjectionJudge {
       body: {
         permission: DENY_ALL_PERMISSIONS,
       } as { parentID?: string; title?: string },
-      query: { directory: this.directory },
+      query: { directory: this.tmpDir },
     })
 
     if (!session.data) {
       const error = (session as { error?: unknown }).error
-      console.error(`[injection-guard] session.create failed: ${JSON.stringify(error)}`)
       throw new Error(`Failed to create injection guard judge session: ${JSON.stringify(error)}`)
     }
 
@@ -134,7 +122,7 @@ export class InjectionJudge {
   private deleteSession(sessionId: string): void {
     this.client.session.delete({
       path: { id: sessionId },
-      query: { directory: this.directory },
+      query: { directory: this.tmpDir },
     }).catch(() => {})
   }
 }
