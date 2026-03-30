@@ -3,15 +3,13 @@
 // The plugin is opt-in: if no config file is found AND no env var is set,
 // loadConfig() returns null and the plugin does nothing.
 //
-// Config file: .opencode/injection-guard.json — searched upward from the
-// project directory (find-up), so a single config in a monorepo root works
-// for all packages.
+// Priority order (highest wins):
+//   1. OPENCODE_INJECTION_GUARD env var (JSON string)
+//   2. .opencode/injection-guard.json file (find-up from project dir)
+//   3. Hardcoded defaults (model, threshold, etc.)
 //
-// Env var: OPENCODE_INJECTION_GUARD (JSON string) — overrides file values.
-//
-// Model resolution: if the user doesn't set a model explicitly, we pick the
-// first available model from a priority list by checking which providers are
-// connected.
+// scanPatterns has no default -- the user must specify which tools to scan.
+// An empty scanPatterns means nothing gets scanned.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -30,6 +28,7 @@ export interface InjectionGuardConfig {
    * Format: "toolname:argsGlob"
    * Examples: "bash:*", "webfetch:*", "bash:*curl*"
    * Only matched tool calls are scanned; everything else is skipped.
+   * No default -- the user must specify which tools to scan.
    */
   scanPatterns: string[]
 }
@@ -55,19 +54,20 @@ const DEFAULTS: Omit<InjectionGuardConfig, 'model'> = {
   confidenceThreshold: 0.7,
   includeReasoning: false,
   maxOutputLength: 8000,
-  scanPatterns: ['bash:*', 'webfetch:*', 'task:*'],
+  scanPatterns: [],
 }
 
 /**
- * Load config from file (find-up) and env var.
- * Returns null if neither source provides config — meaning the user
+ * Load config by merging: defaults <- file <- env var.
+ * Env var has highest priority and overrides file values.
+ * Returns null if neither source provides config -- the user
  * hasn't opted in to injection guard.
  */
 export function loadConfig({ projectDir }: { projectDir: string }): InjectionGuardConfig | null {
   const fileConfig = findConfigFile({ startDir: projectDir })
   const envConfig = loadEnvConfig()
 
-  // No config anywhere → plugin is disabled
+  // No config anywhere -> plugin is disabled
   if (!fileConfig && !envConfig) {
     return null
   }
@@ -105,7 +105,7 @@ export function resolveModel({
     }
   }
 
-  // No connected provider matches — fall back to first entry
+  // No connected provider matches -- fall back to first entry
   return MODEL_PRIORITY[0]!
 }
 

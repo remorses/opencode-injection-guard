@@ -46,10 +46,9 @@
   "homepage": "https://github.com/remorses/opencode-injection-guard",
   "bugs": "https://github.com/remorses/opencode-injection-guard/issues",
   "license": "MIT",
-  "dependencies": {},
   "devDependencies": {
-    "@opencode-ai/plugin": "^1.2.27",
-    "@opencode-ai/sdk": "^1.2.27",
+    "@opencode-ai/plugin": "^1.3.7",
+    "@opencode-ai/sdk": "^1.3.7",
     "@types/node": "^22.0.0",
     "typescript": "^5.8.0",
     "vitest": "^3.0.0"

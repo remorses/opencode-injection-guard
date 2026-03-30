@@ -50,20 +50,48 @@ describe('loadConfig', () => {
       expect(config).not.toBe(null)
       expect(config!.model).toBe('anthropic/claude-haiku')
       expect(config!.confidenceThreshold).toBe(0.5)
-      // Defaults still apply for unset fields
-      expect(config!.scanPatterns).toMatchInlineSnapshot(`
-        [
-          "bash:*",
-          "webfetch:*",
-          "task:*",
-        ]
-      `)
+      // scanPatterns has no default -- empty when not set
+      expect(config!.scanPatterns).toMatchInlineSnapshot(`[]`)
     } finally {
       if (original === undefined) {
         delete process.env.OPENCODE_INJECTION_GUARD
       } else {
         process.env.OPENCODE_INJECTION_GUARD = original
       }
+    }
+  })
+
+  test('env var overrides file config', () => {
+    const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'ig-test-'))
+    const configDir = path.join(tmpBase, '.opencode')
+    fs.mkdirSync(configDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(configDir, 'injection-guard.json'),
+      JSON.stringify({ scanPatterns: ['bash:*'], confidenceThreshold: 0.5 }),
+    )
+
+    const original = process.env.OPENCODE_INJECTION_GUARD
+    process.env.OPENCODE_INJECTION_GUARD = JSON.stringify({
+      scanPatterns: ['webfetch:*'],
+    })
+    try {
+      const config = loadConfig({ projectDir: tmpBase })
+      expect(config).not.toBe(null)
+      // Env var scanPatterns wins over file
+      expect(config!.scanPatterns).toMatchInlineSnapshot(`
+        [
+          "webfetch:*",
+        ]
+      `)
+      // File's confidenceThreshold still applies (env didn't set it)
+      expect(config!.confidenceThreshold).toBe(0.5)
+    } finally {
+      if (original === undefined) {
+        delete process.env.OPENCODE_INJECTION_GUARD
+      } else {
+        process.env.OPENCODE_INJECTION_GUARD = original
+      }
+      fs.rmSync(tmpBase, { recursive: true, force: true })
     }
   })
 

@@ -41,15 +41,15 @@ The plugin is **opt-in**. It does nothing unless you create a config file:
 
 ```bash
 mkdir -p .opencode
-echo '{}' > .opencode/injection-guard.json
+echo '{"scanPatterns":["bash:*","webfetch:*"]}' > .opencode/injection-guard.json
 ```
 
-An empty `{}` config enables the guard with all defaults. The config file is searched upward from the project directory, so a single file at a monorepo root covers all packages.
+You must specify `scanPatterns` to tell the guard which tools to scan. The config file is searched upward from the project directory, so a single file at a monorepo root covers all packages.
 
 You can also activate it via environment variable:
 
 ```bash
-OPENCODE_INJECTION_GUARD='{}' opencode
+OPENCODE_INJECTION_GUARD='{"scanPatterns":["bash:*","webfetch:*"]}' opencode
 ```
 
 ## Config
@@ -58,13 +58,11 @@ OPENCODE_INJECTION_GUARD='{}' opencode
 
 ```json
 {
-  "model": "openai/gpt-4.1-nano",
-  "confidenceThreshold": 0.7,
-  "scanPatterns": ["bash:*", "webfetch:*", "task:*"]
+  "scanPatterns": ["bash:*", "webfetch:*"]
 }
 ```
 
-All fields are optional:
+All fields are optional except `scanPatterns`:
 
 | Field | Default | Description |
 |---|---|---|
@@ -72,7 +70,19 @@ All fields are optional:
 | `confidenceThreshold` | `0.7` | Minimum confidence (0.0-1.0) to block |
 | `includeReasoning` | `false` | Include explanation in the block message |
 | `maxOutputLength` | `8000` | Max chars of tool output sent to judge |
-| `scanPatterns` | `["bash:*", "webfetch:*", "task:*"]` | Which tool calls to scan |
+| `scanPatterns` | `[]` (none) | Which tool calls to scan. You must set this. |
+
+### Config priority
+
+When both a config file and the environment variable exist, the **environment variable wins** for any field it sets. Unset fields fall back to the file, then to defaults.
+
+```
+OPENCODE_INJECTION_GUARD env var   (highest priority)
+  |
+.opencode/injection-guard.json    (file, found via find-up)
+  |
+hardcoded defaults                 (lowest priority)
+```
 
 ### Scan patterns
 
