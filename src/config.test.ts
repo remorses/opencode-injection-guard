@@ -109,38 +109,38 @@ describe('resolveModel', () => {
     return config
   }
 
-  test('picks openai when connected', () => {
+  test('picks first available model from priority', () => {
     const config = makeConfig()
     const model = resolveModel({
       config,
-      connectedProviders: ['openai', 'anthropic'],
+      availableModels: new Set(['openai/gpt-4.1-nano', 'anthropic/claude-haiku-4-5']),
     })
     expect(model).toBe('openai/gpt-4.1-nano')
   })
 
-  test('falls back to anthropic when openai not connected', () => {
+  test('skips unavailable models', () => {
     const config = makeConfig()
     const model = resolveModel({
       config,
-      connectedProviders: ['anthropic'],
+      availableModels: new Set(['anthropic/claude-haiku-4-5', 'google/gemini-2.5-flash']),
     })
     expect(model).toBe('anthropic/claude-haiku-4-5')
   })
 
-  test('falls back to google when only google connected', () => {
+  test('falls back to gpt-5.4-nano when 4.1 unavailable', () => {
     const config = makeConfig()
     const model = resolveModel({
       config,
-      connectedProviders: ['google'],
+      availableModels: new Set(['openai/gpt-5.4-nano', 'openai/gpt-5.4-mini']),
     })
-    expect(model).toBe('google/gemini-2.5-flash')
+    expect(model).toBe('openai/gpt-5.4-nano')
   })
 
-  test('returns first priority when no providers connected', () => {
+  test('returns first priority when no models available', () => {
     const config = makeConfig()
     const model = resolveModel({
       config,
-      connectedProviders: [],
+      availableModels: new Set(),
     })
     expect(model).toBe('openai/gpt-4.1-nano')
   })
@@ -154,7 +154,7 @@ describe('resolveModel', () => {
       const config = loadConfig({ projectDir: '/nonexistent' })!
       const model = resolveModel({
         config,
-        connectedProviders: ['anthropic'],
+        availableModels: new Set(['anthropic/claude-haiku-4-5']),
       })
       expect(model).toBe('custom/my-model')
     } finally {

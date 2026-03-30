@@ -37,16 +37,20 @@ export const injectionGuard: Plugin = async (input) => {
       const connectedProviders = providers.data?.connected ?? []
       console.error(`[injection-guard] connected providers: ${JSON.stringify(connectedProviders)}`)
 
-      // Log all available models per provider for debugging
+      // Build set of all available "provider/modelId" from registry
       const allProviders = providers.data?.all ?? []
+      const availableModels = new Set<string>()
       for (const p of allProviders) {
         const modelIds = Object.keys(p.models ?? {})
         if (modelIds.length > 0) {
           console.error(`[injection-guard] ${p.id} models: ${modelIds.join(', ')}`)
         }
+        for (const mid of modelIds) {
+          availableModels.add(`${p.id}/${mid}`)
+        }
       }
 
-      config.model = resolveModel({ config, connectedProviders })
+      config.model = resolveModel({ config, availableModels })
     } catch (e) {
       console.error(`[injection-guard] failed to list providers: ${e}`)
     }

@@ -81,16 +81,17 @@ export function loadConfig({ projectDir }: { projectDir: string }): InjectionGua
 }
 
 /**
- * Pick the best model from the priority list based on connected providers.
+ * Pick the best model from the priority list based on available models.
+ * Checks against the actual model registry (provider/modelId pairs),
+ * not just connected providers, to avoid ProviderModelNotFoundError.
  * If the user explicitly set a model in config, returns that unchanged.
- * Otherwise returns the first model whose provider is in connectedProviders.
  */
 export function resolveModel({
   config,
-  connectedProviders,
+  availableModels,
 }: {
   config: InjectionGuardConfig
-  connectedProviders: string[]
+  availableModels: Set<string>
 }): string {
   // If user explicitly configured a model, keep it
   const explicit = getExplicitModel()
@@ -98,10 +99,8 @@ export function resolveModel({
     return explicit
   }
 
-  const connectedSet = new Set(connectedProviders)
   for (const model of MODEL_PRIORITY) {
-    const { providerID } = parseModelId(model)
-    if (connectedSet.has(providerID)) {
+    if (availableModels.has(model)) {
       return model
     }
   }
