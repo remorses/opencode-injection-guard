@@ -4,6 +4,9 @@
 // Opt-in: only active if .opencode/injection-guard.json exists (searched
 // upward from project dir) or OPENCODE_INJECTION_GUARD env var is set.
 // If neither is found, the plugin is a no-op.
+//
+// When running inside Kimaki (process.env.KIMAKI === '1'), this plugin
+// is disabled because Kimaki loads it separately via its own plugin file.
 
 import type { Plugin } from '@opencode-ai/plugin'
 
@@ -12,6 +15,12 @@ import { InjectionJudge } from './judge.ts'
 import { matchesScanPatterns } from './patterns.ts'
 
 export const injectionGuard: Plugin = async (input) => {
+  // Skip when loaded as a standalone plugin inside Kimaki -- Kimaki
+  // re-exports this plugin from its own plugin file instead.
+  if (process.env.KIMAKI === '1') {
+    return {}
+  }
+
   const config = loadConfig({ projectDir: input.directory })
 
   if (!config) {
