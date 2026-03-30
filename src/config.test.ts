@@ -115,7 +115,7 @@ describe('resolveModel', () => {
       config,
       connectedProviders: ['openai', 'anthropic'],
     })
-    expect(model).toBe('openai/gpt-4.1-mini')
+    expect(model).toBe('openai/gpt-4.1-nano')
   })
 
   test('falls back to anthropic when openai not connected', () => {
@@ -124,7 +124,7 @@ describe('resolveModel', () => {
       config,
       connectedProviders: ['anthropic'],
     })
-    expect(model).toBe('anthropic/claude-haiku')
+    expect(model).toBe('anthropic/claude-haiku-4-5')
   })
 
   test('falls back to google when only google connected', () => {
@@ -142,7 +142,7 @@ describe('resolveModel', () => {
       config,
       connectedProviders: [],
     })
-    expect(model).toBe('openai/gpt-4.1-mini')
+    expect(model).toBe('openai/gpt-4.1-nano')
   })
 
   test('respects user-configured model from env var', () => {

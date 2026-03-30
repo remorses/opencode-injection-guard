@@ -58,7 +58,7 @@ OPENCODE_INJECTION_GUARD='{}' opencode
 
 ```json
 {
-  "model": "openai/gpt-4.1-mini",
+  "model": "openai/gpt-4.1-nano",
   "confidenceThreshold": 0.7,
   "scanPatterns": ["bash:*", "webfetch:*", "task:*"]
 }
@@ -96,10 +96,12 @@ Only tool calls matching a pattern are scanned. Everything else is skipped with 
 
 If you don't set `model`, the plugin checks which providers you have connected and picks the first available from this priority list:
 
-1. `openai/gpt-4.1-mini`
-2. `anthropic/claude-haiku`
-3. `google/gemini-2.5-flash`
-4. `amazon-bedrock/us.anthropic.claude-3-5-haiku-20241022-v1:0`
+1. `openai/gpt-4.1-nano`
+2. `openai/gpt-4.1-mini`
+3. `anthropic/claude-haiku-4-5`
+4. `google/gemini-2.5-flash`
+5. `openai/gpt-4o-mini`
+6. `anthropic/claude-3-5-haiku-latest`
 
 This means it works out of the box with whatever provider you already use -- no extra API keys needed.
 

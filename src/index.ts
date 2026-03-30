@@ -5,17 +5,9 @@
 // upward from project dir) or OPENCODE_INJECTION_GUARD env var is set.
 // If neither is found, the plugin is a no-op.
 //
-// Config: .opencode/injection-guard.json or OPENCODE_INJECTION_GUARD env var.
-// Default model: auto-detected from connected providers via priority list.
-// Priority: gpt-4.1-mini -> claude-haiku -> gemini-2.5-flash -> bedrock haiku
-//
-// IMPORTANT: we create our own v2 SDK client from input.serverUrl instead of
-// using input.client directly. The plugin system provides a v1-shaped client
-// but we need v2 flat params and the `permission` field on session.create
-// which only exists in v2.
+// Uses input.client directly (in-process, no HTTP round-trips).
 
 import type { Plugin } from '@opencode-ai/plugin'
-import { createOpencodeClient } from '@opencode-ai/sdk/v2'
 
 import { loadConfig, resolveModel } from './config.ts'
 import { InjectionJudge } from './judge.ts'
@@ -24,25 +16,35 @@ import { matchesScanPatterns } from './patterns.ts'
 export const injectionGuard: Plugin = async (input) => {
   const config = loadConfig({ projectDir: input.directory })
 
-  // No config found -- user hasn't opted in, return empty hooks
   if (!config) {
+    console.error('[injection-guard] no config found, plugin disabled')
     return {}
   }
 
-  // Create a v2 SDK client from the server URL so we get flat params
-  // and the `permission` field on session.create.
-  const client = createOpencodeClient({
-    baseUrl: input.serverUrl.toString(),
-    directory: input.directory,
-  })
+  console.error(`[injection-guard] enabled, scanPatterns: ${JSON.stringify(config.scanPatterns)}`)
 
-  // Resolve the best available model by checking which providers are connected.
-  const providers = await client.provider.list()
-  const connectedProviders = providers.data?.connected ?? []
-  config.model = resolveModel({ config, connectedProviders })
+  // Resolve model lazily on first scan so providers are ready
+  let modelResolved = false
+  const resolveModelOnce = async () => {
+    if (modelResolved) {
+      return
+    }
+    modelResolved = true
+    try {
+      const providers = await input.client.provider.list({
+        query: { directory: input.directory },
+      })
+      const connectedProviders = providers.data?.connected ?? []
+      console.error(`[injection-guard] connected providers: ${JSON.stringify(connectedProviders)}`)
+      config.model = resolveModel({ config, connectedProviders })
+    } catch (e) {
+      console.error(`[injection-guard] failed to list providers: ${e}`)
+    }
+    console.error(`[injection-guard] using model: ${config.model}`)
+  }
 
   const judge = new InjectionJudge({
-    client,
+    client: input.client,
     config,
     directory: input.directory,
   })
@@ -62,6 +64,8 @@ export const injectionGuard: Plugin = async (input) => {
       if (!shouldScan) {
         return
       }
+
+      await resolveModelOnce()
 
       const result = await judge.evaluate({
         tool: toolInput.tool,

@@ -38,12 +38,15 @@ export interface InjectionGuardConfig {
  * Priority list of cheap/fast models for injection detection.
  * The first model whose provider is connected will be used as default.
  * Users can override this by setting "model" in config.
+ * IDs from https://models.dev/api.json -- format is "provider/modelID".
  */
 export const MODEL_PRIORITY: string[] = [
+  'openai/gpt-4.1-nano',
   'openai/gpt-4.1-mini',
-  'anthropic/claude-haiku',
+  'anthropic/claude-haiku-4-5',
   'google/gemini-2.5-flash',
-  'amazon-bedrock/us.anthropic.claude-3-5-haiku-20241022-v1:0',
+  'openai/gpt-4o-mini',
+  'anthropic/claude-3-5-haiku-latest',
 ]
 
 const DEFAULTS: Omit<InjectionGuardConfig, 'model'> = {
