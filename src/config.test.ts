@@ -115,7 +115,7 @@ describe('resolveModel', () => {
       config,
       connectedProviders: ['openai', 'anthropic'],
     })
-    expect(model).toBe('openai/gpt-4.1-nano')
+    expect(model).toBe('openai/gpt-5.4-nano')
   })
 
   test('falls back to anthropic when openai not connected', () => {
@@ -142,7 +142,7 @@ describe('resolveModel', () => {
       config,
       connectedProviders: [],
     })
-    expect(model).toBe('openai/gpt-4.1-nano')
+    expect(model).toBe('openai/gpt-5.4-nano')
   })
 
   test('respects user-configured model from env var', () => {
