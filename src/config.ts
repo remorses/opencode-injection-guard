@@ -12,6 +12,7 @@
 // An empty scanPatterns means nothing gets scanned.
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 
 export interface InjectionGuardConfig {
@@ -57,6 +58,15 @@ const DEFAULTS: Omit<InjectionGuardConfig, 'model'> = {
   scanPatterns: [],
 }
 
+const KIMAKI_INJECTION_GUARD_DIR = path.join(os.tmpdir(), 'kimaki-injection-guard')
+
+export function getDefaultConfig(): InjectionGuardConfig {
+  return {
+    model: MODEL_PRIORITY[0]!,
+    ...DEFAULTS,
+  }
+}
+
 /**
  * Load config by merging: defaults <- file <- env var.
  * Env var has highest priority and overrides file values.
@@ -73,10 +83,35 @@ export function loadConfig({ projectDir }: { projectDir: string }): InjectionGua
   }
 
   return {
-    model: MODEL_PRIORITY[0]!,
-    ...DEFAULTS,
+    ...getDefaultConfig(),
     ...fileConfig,
     ...envConfig,
+  }
+}
+
+/**
+ * Read per-session scan patterns written by Kimaki to a temp directory.
+ * This is only used by injectionGuardInternal in the Kimaki host.
+ */
+export function readKimakiSessionScanPatterns({
+  sessionId,
+}: {
+  sessionId: string
+}): string[] | null {
+  try {
+    const raw = fs.readFileSync(
+      path.join(KIMAKI_INJECTION_GUARD_DIR, `${sessionId}.json`),
+      'utf-8',
+    )
+    const parsed = JSON.parse(raw) as { scanPatterns?: unknown }
+    if (!Array.isArray(parsed.scanPatterns)) {
+      return null
+    }
+    return parsed.scanPatterns.filter((value): value is string => {
+      return typeof value === 'string'
+    })
+  } catch {
+    return null
   }
 }
 

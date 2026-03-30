@@ -29,33 +29,31 @@ type PluginClient = PluginInput['client']
 
 export class InjectionJudge {
   private client: PluginClient
-  private config: InjectionGuardConfig
   private tmpDir: string
 
   constructor({
     client,
-    config,
   }: {
     client: PluginClient
-    config: InjectionGuardConfig
   }) {
     this.client = client
-    this.config = config
     this.tmpDir = os.tmpdir()
   }
 
   async evaluate({
+    config,
     tool,
     args,
     output,
   }: {
+    config: InjectionGuardConfig
     tool: string
     args: string
     output: string
   }): Promise<JudgeResult> {
     const sessionId = await this.createJudgeSession()
 
-    const systemPrompt = this.config.includeReasoning
+    const systemPrompt = config.includeReasoning
       ? INJECTION_DETECTION_PROMPT_WITH_REASONING
       : INJECTION_DETECTION_PROMPT
 
@@ -63,10 +61,10 @@ export class InjectionJudge {
       tool,
       args,
       output,
-      maxLength: this.config.maxOutputLength,
+      maxLength: config.maxOutputLength,
     })
 
-    const model = parseModelId(this.config.model)
+    const model = parseModelId(config.model)
 
     const response = await this.client.session.prompt({
       path: { id: sessionId },

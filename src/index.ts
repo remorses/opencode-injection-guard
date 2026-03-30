@@ -11,7 +11,12 @@
 
 import type { Plugin } from '@opencode-ai/plugin'
 
-import { loadConfig, resolveModel } from './config.ts'
+import {
+  getDefaultConfig,
+  loadConfig,
+  readKimakiSessionScanPatterns,
+  resolveModel,
+} from './config.ts'
 import { InjectionJudge } from './judge.ts'
 import { matchesScanPatterns } from './patterns.ts'
 
@@ -32,16 +37,15 @@ export const injectionGuard: Plugin = async (input) => {
  * Kimaki's plugin file re-exports so it always runs.
  */
 export const injectionGuardInternal: Plugin = async (input) => {
-  const config = loadConfig({ projectDir: input.directory })
+  const baseConfig = loadConfig({ projectDir: input.directory })
 
-  if (!config) {
-    return {}
+  if (baseConfig) {
+    console.error(`[injection-guard] enabled, scanPatterns: ${JSON.stringify(baseConfig.scanPatterns)}`)
   }
-
-  console.error(`[injection-guard] enabled, scanPatterns: ${JSON.stringify(config.scanPatterns)}`)
 
   // Resolve model lazily on first scan so providers are ready at that point
   let modelResolved = false
+  let resolvedModel = (baseConfig ?? getDefaultConfig()).model
   const resolveModelOnce = async () => {
     if (modelResolved) {
       return
@@ -60,20 +64,41 @@ export const injectionGuardInternal: Plugin = async (input) => {
         }
       }
 
-      config.model = resolveModel({ config, availableModels })
+      resolvedModel = resolveModel({
+        config: baseConfig ?? getDefaultConfig(),
+        availableModels,
+      })
     } catch (e) {
       console.error(`[injection-guard] failed to list providers: ${e}`)
     }
-    console.error(`[injection-guard] using model: ${config.model}`)
+    console.error(`[injection-guard] using model: ${resolvedModel}`)
   }
 
   const judge = new InjectionJudge({
     client: input.client,
-    config,
   })
 
   return {
     'tool.execute.after': async (toolInput, output) => {
+      const sessionScanPatterns = process.env.KIMAKI === '1'
+        ? readKimakiSessionScanPatterns({ sessionId: toolInput.sessionID })
+        : null
+      const config = {
+        ...(baseConfig ?? getDefaultConfig()),
+        ...(sessionScanPatterns ? { scanPatterns: sessionScanPatterns } : {}),
+        model: resolvedModel,
+      }
+
+      if (config.scanPatterns.length === 0) {
+        return
+      }
+
+      if (!baseConfig && sessionScanPatterns) {
+        console.error(
+          `[injection-guard] enabled for session ${toolInput.sessionID}, scanPatterns: ${JSON.stringify(sessionScanPatterns)}`,
+        )
+      }
+
       const argsString = typeof toolInput.args === 'string'
         ? toolInput.args
         : JSON.stringify(toolInput.args ?? '')
@@ -91,6 +116,7 @@ export const injectionGuardInternal: Plugin = async (input) => {
       await resolveModelOnce()
 
       const result = await judge.evaluate({
+        config,
         tool: toolInput.tool,
         args: argsString,
         output: output.output,
