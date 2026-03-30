@@ -41,10 +41,10 @@ export interface InjectionGuardConfig {
  * IDs from https://models.dev/api.json -- format is "provider/modelID".
  */
 export const MODEL_PRIORITY: string[] = [
-  'openai/gpt-5.4-nano',
-  'openai/gpt-5.4-mini',
   'openai/gpt-4.1-nano',
   'openai/gpt-4.1-mini',
+  'openai/gpt-5.4-nano',
+  'openai/gpt-5.4-mini',
   'anthropic/claude-haiku-4-5',
   'google/gemini-2.5-flash',
   'openai/gpt-4o-mini',
