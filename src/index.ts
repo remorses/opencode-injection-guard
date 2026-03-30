@@ -5,8 +5,9 @@
 // upward from project dir) or OPENCODE_INJECTION_GUARD env var is set.
 // If neither is found, the plugin is a no-op.
 //
-// When running inside Kimaki (process.env.KIMAKI === '1'), this plugin
-// is disabled because Kimaki loads it separately via its own plugin file.
+// Two exports:
+// - injectionGuard: for npm users. Skips when KIMAKI=1 to avoid double-loading.
+// - injectionGuardInternal: for Kimaki's own plugin file. No env check.
 
 import type { Plugin } from '@opencode-ai/plugin'
 
@@ -14,13 +15,23 @@ import { loadConfig, resolveModel } from './config.ts'
 import { InjectionJudge } from './judge.ts'
 import { matchesScanPatterns } from './patterns.ts'
 
+/**
+ * Public export for npm users. Skips when running inside Kimaki
+ * (process.env.KIMAKI === '1') because Kimaki loads injectionGuardInternal
+ * from its own plugin file instead.
+ */
 export const injectionGuard: Plugin = async (input) => {
-  // Skip when loaded as a standalone plugin inside Kimaki -- Kimaki
-  // re-exports this plugin from its own plugin file instead.
   if (process.env.KIMAKI === '1') {
     return {}
   }
+  return injectionGuardInternal(input)
+}
 
+/**
+ * Internal export for Kimaki. No KIMAKI env check -- this is the one
+ * Kimaki's plugin file re-exports so it always runs.
+ */
+export const injectionGuardInternal: Plugin = async (input) => {
   const config = loadConfig({ projectDir: input.directory })
 
   if (!config) {
@@ -41,7 +52,6 @@ export const injectionGuard: Plugin = async (input) => {
         query: { directory: input.directory },
       })
 
-      // Build set of all available "provider/modelId" from registry
       const allProviders = providers.data?.all ?? []
       const availableModels = new Set<string>()
       for (const p of allProviders) {
