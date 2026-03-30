@@ -1,6 +1,6 @@
 {
   "name": "opencode-injection-guard",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "description": "OpenCode plugin that detects prompt injection in tool call outputs using an LLM judge",
   "main": "./dist/index.js",
@@ -41,11 +41,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/remorses/kimaki",
-    "directory": "opencode-injection-guard"
+    "url": "https://github.com/remorses/opencode-injection-guard"
   },
-  "homepage": "https://github.com/remorses/kimaki/tree/main/opencode-injection-guard",
-  "bugs": "https://github.com/remorses/kimaki/issues",
+  "homepage": "https://github.com/remorses/opencode-injection-guard",
+  "bugs": "https://github.com/remorses/opencode-injection-guard/issues",
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {
