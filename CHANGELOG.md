@@ -1,3 +1,8 @@
+## 0.2.1
+
+1. **Session config files now use Kimaki data dir** — per-session injection guard files are written to `<dataDir>/injection-guard/` instead of `/tmp/kimaki-injection-guard/`. The plugin reads `KIMAKI_DATA_DIR` env var (already passed by the bot) to locate them.
+2. **Skip writing empty scan patterns** — no file is created when `scanPatterns` is empty, avoiding unnecessary disk writes.
+
 ## 0.2.0
 
 1. **`scanPatterns` is now required — no implicit scanning** — the default was changed from `["bash:*", "webfetch:*", "task:*"]` to `[]`. The guard does nothing unless you explicitly set which tools to scan. This prevents unintended scanning of tools you didn't opt into:
