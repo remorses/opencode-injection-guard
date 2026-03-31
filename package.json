@@ -1,6 +1,6 @@
 {
   "name": "opencode-injection-guard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "OpenCode plugin that detects prompt injection in tool call outputs using an LLM judge",
   "main": "./dist/index.js",

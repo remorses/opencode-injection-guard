@@ -1,3 +1,29 @@
+## 0.2.0
+
+1. **`scanPatterns` is now required — no implicit scanning** — the default was changed from `["bash:*", "webfetch:*", "task:*"]` to `[]`. The guard does nothing unless you explicitly set which tools to scan. This prevents unintended scanning of tools you didn't opt into:
+
+   ```bash
+   echo '{"scanPatterns":["bash:*","webfetch:*"]}' > .opencode/injection-guard.json
+   ```
+
+   Or via env var:
+
+   ```bash
+   OPENCODE_INJECTION_GUARD='{"scanPatterns":["bash:*","webfetch:*"]}' opencode
+   ```
+
+2. **Env var now takes highest priority** — when both a config file and `OPENCODE_INJECTION_GUARD` env var are set, the env var wins for any field it specifies. Unset fields fall back to the file, then to hardcoded defaults:
+
+   ```
+   OPENCODE_INJECTION_GUARD env var   (highest priority)
+     |
+   .opencode/injection-guard.json    (file, found via find-up)
+     |
+   hardcoded defaults                 (lowest priority)
+   ```
+
+3. **Per-session scan patterns for Kimaki** — when running inside Kimaki (`KIMAKI=1`), the guard reads per-session scan patterns from a temp file keyed by session ID (`/tmp/kimaki-injection-guard/<sessionId>.json`). This lets Kimaki override `scanPatterns` on a per-session basis without affecting other sessions or standalone OpenCode usage.
+
 ## 0.1.0
 
 1. **Initial release** -- OpenCode plugin that detects prompt injection in tool call outputs using an LLM-as-judge. Intercepts `tool.execute.after` and replaces injected content with a warning before the main agent ever sees it:
