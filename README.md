@@ -1,5 +1,8 @@
 # opencode-injection-guard
 
+> [!IMPORTANT]
+> This plugin supports **OpenCode v1 only**. It does not work on OpenCode v2, and Kimaki 1.0 does not bundle it.
+
 Open-source prompt injection detection for [OpenCode](https://opencode.ai). Works with any model -- not locked to OpenAI.
 
 An alternative to [OpenAI Guardrails](https://github.com/openai/openai-guardrails-python) that runs as an OpenCode plugin, using a cheap/fast LLM as a judge to detect prompt injection in tool call outputs before they reach the main agent.
